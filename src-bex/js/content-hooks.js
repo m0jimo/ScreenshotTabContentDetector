@@ -1,8 +1,15 @@
 // Hooks added here have a bridge allowing communication between the BEX Content Script and the Quasar Application.
 // More info: https://quasar.dev/quasar-cli/developing-browser-extensions/content-hooks
 
-export default function attachContentHooks (/* bridge */) {
+export default function attachContentHooks (bridge) {
   // Hook into the bridge to listen for events sent from the client BEX.
+  // bridge.on("start.timer", event => {
+  //   console.log("---start timer", event);
+  //   bridge.send("start.timer.bg", event.data);
+  //   //   .then(payload => {
+  //   //   bridge.send(event.eventResponseKey, payload.data);
+  //   // });
+  // });
   /*
   bridge.on('some.event', event => {
     if (event.data.yourProp) {

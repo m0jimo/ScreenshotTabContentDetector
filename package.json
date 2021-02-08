@@ -1,6 +1,6 @@
 {
   "name": "screenshotdetector",
-  "version": "0.0.1-alfa.1",
+  "version": "0.1.0",
   "description": "Browser extension which detects changes in browsers' active tab  by comparing screenshots.",
   "productName": "BEX - Screenshot Tab Content Detector",
   "author": "Ota Vaclavik <ov.online@gmail.com>",

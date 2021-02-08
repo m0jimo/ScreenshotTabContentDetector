@@ -31,6 +31,8 @@
   }],
   "permissions": [
     "<all_urls>",
+    "alarms",
+    "background",
     "storage",
     "tabs",
     "activeTab"
