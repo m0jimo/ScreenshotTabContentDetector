@@ -33,7 +33,7 @@
           <q-tooltip>Take a screenshot</q-tooltip>
         </q-btn>
         <q-btn :disable="screenshot === null" color="primary" outline no-caps label="Use screenshot"
-               @click="addScreenshot"
+               @click="applyCrop()"
                icon="add"></q-btn>
 
         <!-- NOTE pridat dropdown s moznosti: crop editor, crop editor new page       -->
@@ -46,8 +46,25 @@
       </div>
       <div class="row q-pt-xs">
         <!--      <div style="max-width: 50vw; max-height: 50vh; min-width: 400px; min-height: 400px; border: solid red 1px">-->
+        <q-btn @click.prevent="saveCrop()" label="crop" flat color="primary"></q-btn>
+        <q-btn @click.prevent="applyCrop()" label="apply crop" flat color="primary"></q-btn>
+        <small class="text-grey debug" style="min-width: 200px">
+          {{ crop.visibleArea }} -
+          {{ crop.coordinates }}
+        </small>
+        <!--        <div style="width: 40px; height: 80px">-->
+        <!--        </div>-->
         <div style="width: 700px; height: 470px; border: solid red 1px">
-          <q-img :src="screenshot" contain></q-img>
+          <!--          <img id="image" ref="img" :src="screenshot" style="width: 100%"/>-->
+          <cropper ref="cropper"
+                   @change="getCropData"
+                   :default-position="{left: 184,
+                    top: 72}"
+                   :default-size="{
+                     width: 114,
+                    height: 754}"
+                   :src="screenshot"
+          ></cropper>
         </div>
       </div>
     </div>
@@ -56,16 +73,28 @@
 
 <script>
 import { date, extend } from "quasar";
+import { Cropper } from "vue-advanced-cropper";
+import "vue-advanced-cropper/dist/style.css";
+// import VueCropper from "vue-cropperjs";
+// import Cropper from "cropperjs";
+// import "cropperjs/dist/cropper.css";
 
 export default {
   name: "PageIndex",
+  components: {
+    Cropper
+  },
   data () {
     return {
       screenshot: null,
       history: [],
       screenshotInterval: 1,
       screenshotTimer: false,
-      result: null
+      result: null,
+      crop: {
+        coordinates: null,
+        visibleArea: null
+      }
     };
   },
   computed: {},
@@ -84,6 +113,66 @@ export default {
     // this.$q.bex.off("start.timer", this.testMessage());
   },
   methods: {
+    applyCrop () {
+      const item = this.screenshot;
+      const img = new Image();
+      img.src = item;
+      const cropped = this.cropMyImage(img);
+      console.log("--croppedImage", cropped);
+      this.addScreenshot(cropped.src);
+    },
+    cropMyImage (source) {
+      // https://medium.com/trabe/manipulating-images-using-the-canvas-api-98dc77352ddc
+      if (this.crop.coordinates && this.crop.visibleArea) {
+        const { visibleArea } = this.crop;
+        const canvas = document.createElement("canvas");
+        canvas.width = visibleArea.width;
+        canvas.height = visibleArea.height;
+        const ctx = canvas.getContext("2d");
+        const { coordinates } = this.crop;
+        console.log("---use coordinates", coordinates);
+        ctx.drawImage(
+          source,
+          coordinates.left,
+          coordinates.top,
+          coordinates.width,
+          coordinates.height,
+          0,
+          0,
+          coordinates.width,
+          coordinates.height
+        );
+        // const img = ctx.getImageData(0, 0, coordinates.width, coordinates.height);
+        // const imgData = img.data;
+        // const nctx = ctx.getImageData(0,0, coordinates.width, coordinates.height);
+
+        const img = new Image();
+        img.src = canvas.toDataURL("image/png");
+        return img;
+      }
+    },
+    setCropDimension (evt) {
+      this.crop.coordinates = evt.coordinates;
+      this.crop.visibleArea = evt.visibleArea;
+    },
+    saveCrop () {
+      const obj = this.$refs.cropper.getResult();
+      // console.log("---obj", obj);
+      this.screenshot = obj.canvas.toDataURL();
+    },
+    getCropData (evt) {
+      // const cropData = JSON.stringify(this.$refs.img.cropper.getData(), null, 4);
+      // console.log("----val", evt);
+      if (evt.image) {
+        this.setCropDimension(evt);
+        // const res = this.$refs.cropper.getResults();
+        // console.log("---res", res);
+        this.screenshot = evt.image.src;
+      }
+      // if (cropData) {
+      // this.$refs.cropper.setData(JSON.parse(cropData));
+      // }
+    },
     reloadHistory () {
       chrome.storage.local.get(["history"], (items) => {
         this.history = JSON.parse(items.history);
@@ -105,8 +194,7 @@ export default {
     formatDate (__date) {
       return date.formatDate(__date, "HH:MM:ss");
     },
-    addScreenshot () {
-      const img = this.screenshot;
+    addScreenshot (img) {
       const changeLevel = this.isChanged(img, this.history);
       this.history.unshift({
         img: img,
@@ -140,11 +228,73 @@ export default {
       return 0;
     },
     takeScreenshot () {
-      console.log("---screenshot");
       chrome.tabs.captureVisibleTab((img) => {
         this.screenshot = img;
+        console.log("---screenshot", img);
+        // const image = document.getElementById("image");
+        // const base64toBlob = (base64Data, contentType) => {
+        //   contentType = contentType || "";
+        //   const sliceSize = 512;
+        //   const byteCharacters = atob(base64Data);
+        //   const bytesLength = byteCharacters.length;
+        //   const slicesCount = Math.ceil(bytesLength / sliceSize);
+        //   const byteArrays = new Array(slicesCount);
+        //
+        //   for (let sliceIndex = 0; sliceIndex < slicesCount; ++sliceIndex) {
+        //     const begin = sliceIndex * sliceSize;
+        //     const end = Math.min(begin + sliceSize, bytesLength);
+        //
+        //     const bytes = new Array(end - begin);
+        //     for (let offset = begin, i = 0; offset < end; ++i, ++offset) {
+        //       bytes[i] = byteCharacters[offset].charCodeAt(0);
+        //     }
+        //     byteArrays[sliceIndex] = new Uint8Array(bytes);
+        //   }
+        //   return new Blob(byteArrays, { type: contentType });
+        // };
+        // const imgc = new Image();
+        // imgc.src = this.screenshot;
+        // console.log("----imgc", imgc);
+        // const xx = this.$refs.img;
+        // xx.cropper("destroy");
+        // console.log(xx);
+        // const xx = document.getElementById("image");
+        // const minAspectRatio = 0.5;
+        // const maxAspectRatio = 1.5;
+        // const cropper = new Cropper(xx, {
+        // ready: function () {
+        //   const cropper = this.cropper;
+        //   const containerData = cropper.getContainerData();
+        //   const cropBoxData = cropper.getCropBoxData();
+        //   const aspectRatio = cropBoxData.width / cropBoxData.height;
+        //   let newCropBoxWidth = null;
+        //
+        //   if (aspectRatio < minAspectRatio || aspectRatio > maxAspectRatio) {
+        //     newCropBoxWidth = cropBoxData.height * ((minAspectRatio + maxAspectRatio) / 2);
+        //
+        //     cropper.setCropBoxData({
+        //       left: (containerData.width - newCropBoxWidth) / 2,
+        //       width: newCropBoxWidth
+        //     });
+        //   }
+        // },
+        //   crop (event) {
+        //     console.log(event);
+        //   }
+        // });
+        // console.log("---", cropper);
+        // const reader = new FileReader();
+        // reader.onload = (evt) => {
+        //   this.$refs.cropper.replace(evt.target.result);
+        // };
+        // reader.readAsDataURL(new Blob(this.screenshot, { type: "image/png" }));
       });
     }
   }
 };
 </script>
+<style>
+.debug {
+  outline: solid 1px red;
+}
+</style>

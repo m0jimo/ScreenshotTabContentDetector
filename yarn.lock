@@ -928,10 +928,10 @@
   resolved "https://registry.yarnpkg.com/@positron/stack-trace/-/stack-trace-1.0.0.tgz#14fcc712a530038ef9be1ce6952315a839f466a8"
   integrity sha1-FPzHEqUwA475vhzmlSMVqDn0Zqg=
 
-"@quasar/app@^2.0.0":
-  version "2.1.14"
-  resolved "https://registry.yarnpkg.com/@quasar/app/-/app-2.1.14.tgz#1922d6b81d6c38caaff5bd92d0985c395f659a73"
-  integrity sha512-NaUTJ7tuTMpObEwFfGrPYFFLs11i8yBFHVVMeM3qbjBoMrNLBATaQ9UCSGdgxVD3DpeoXfm81eLIVyJ20vAGzw==
+"@quasar/app@^2.1.15":
+  version "2.1.15"
+  resolved "https://registry.yarnpkg.com/@quasar/app/-/app-2.1.15.tgz#fb00a92128c9e42e3f7327876ba8b88175493554"
+  integrity sha512-wWgTwQYUWNurEYocw6EjnBj4zlX8TkONLx88Q+0ie9Pt7OuVZ2FVI1Wnv3A886IU0wIV87+lMKyjHuOuuUxqbw==
   dependencies:
     "@quasar/babel-preset-app" "2.0.1"
     "@quasar/fastclick" "1.1.4"
@@ -982,6 +982,7 @@
     postcss-loader "3.0.0"
     postcss-rtl "1.7.3"
     postcss-safe-parser "4.0.2"
+    pretty-error "^2.1.1"
     register-service-worker "1.7.1"
     sass "1.29.0"
     sass-loader "10.1.0"
@@ -1037,10 +1038,10 @@
     core-js "^3.6.5"
     core-js-compat "^3.6.5"
 
-"@quasar/extras@^1.0.0":
-  version "1.9.14"
-  resolved "https://registry.yarnpkg.com/@quasar/extras/-/extras-1.9.14.tgz#d9a14547b8d4e43c95a98b24058ff0cdffd92df4"
-  integrity sha512-8g2C0qsdKmaSbIR16C87yQbpY/pDubcZU6r69E9NuX/oNLhudWwg1kux9mdk3rlHHG4z7qty3i9+Dedampwt2A==
+"@quasar/extras@^1.9.18":
+  version "1.9.18"
+  resolved "https://registry.yarnpkg.com/@quasar/extras/-/extras-1.9.18.tgz#9a6b1aa644584dcb42c8ae2eba1534384bc3c3c0"
+  integrity sha512-ZYZ4WIbJf4kGK2JA142Wqeg6rghAa8GRPNiLUe+IlrxFah23mOVKmcoDz2ru9E5mdpo/b7CmKyt9Ubnnl8f8zw==
 
 "@quasar/fastclick@1.1.4":
   version "1.1.4"
@@ -2381,6 +2382,11 @@ class-utils@^0.3.5:
     isobject "^3.0.0"
     static-extend "^0.1.1"
 
+classnames@^2.2.6:
+  version "2.2.6"
+  resolved "https://registry.yarnpkg.com/classnames/-/classnames-2.2.6.tgz#43935bffdd291f326dad0a205309b38d00f650ce"
+  integrity sha512-JR/iSQOSt+LQIWwrwEzJ9uk0xfN3mTVYMwt1Ir5mUcSN6pU+V4zQFFaJsclJbPuAUQH+yfWef6tm7l1quW3C8Q==
+
 clean-css@^4.2.1, clean-css@^4.2.3:
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/clean-css/-/clean-css-4.2.3.tgz#507b5de7d97b48ee53d84adb0160ff6216380f78"
@@ -2761,6 +2767,11 @@ create-hmac@^1.1.0, create-hmac@^1.1.4, create-hmac@^1.1.7:
     safe-buffer "^5.0.1"
     sha.js "^2.4.8"
 
+cropperjs@^1.5.6, cropperjs@^1.5.9:
+  version "1.5.9"
+  resolved "https://registry.yarnpkg.com/cropperjs/-/cropperjs-1.5.9.tgz#4ff9d31e02ad04d2fc5df0044207c2ad53d99da8"
+  integrity sha512-aPWlg43sLIcYN4GBXIdyvM09wNPgn1ug+vNVwV8jlb3dbgEX/B34Iw6hrjGSajkUDQBmaCi6uPOevFb7N0yUsw==
+
 cross-spawn@7.0.3:
   version "7.0.3"
   resolved "https://registry.yarnpkg.com/cross-spawn/-/cross-spawn-7.0.3.tgz#f73a85b9d5d41d045551c177e2882d4ac85728a6"
@@ -2972,6 +2983,11 @@ de-indent@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/de-indent/-/de-indent-1.0.2.tgz#b2038e846dc33baa5796128d0804b455b8c1e21d"
   integrity sha1-sgOOhG3DO6pXlhKNCAS0VbjB4h0=
+
+debounce@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/debounce/-/debounce-1.2.0.tgz#44a540abc0ea9943018dc0eaa95cce87f65cd131"
+  integrity sha512-mYtLl1xfZLi1m4RtQYlZgJUNQjl4ZxVnHzIR8nLLgi4q1YT8o/WM+MK/f8yfcc9s5Ir5zRaPZyZU6xs1Syoocg==
 
 debug@2.6.9, debug@^2.2.0, debug@^2.3.3, debug@^2.6.8, debug@^2.6.9:
   version "2.6.9"
@@ -3248,6 +3264,11 @@ duplexify@^3.4.2, duplexify@^3.6.0:
     inherits "^2.0.1"
     readable-stream "^2.0.0"
     stream-shift "^1.0.0"
+
+easy-bem@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/easy-bem/-/easy-bem-1.0.2.tgz#3f759158c045465744900aa26ba8bd7d88d7a969"
+  integrity sha512-tHtLDhcEHZIMKdiiZElQoR8TcZ/6rvcNp7//93Vx/mqNLah9BOFGhhzTUfWLJs7uxZiKMdP/KzGOtzq14DrrqQ==
 
 ee-first@1.1.1:
   version "1.1.1"
@@ -6983,10 +7004,10 @@ qs@6.7.0:
   resolved "https://registry.yarnpkg.com/qs/-/qs-6.7.0.tgz#41dc1a015e3d581f1621776be31afb2876a9b1bc"
   integrity sha512-VCdBRNFTX1fyE7Nb6FYoURo/SPe62QCaAyzJvUjwRaIsc+NePBEniHlvxFmmX56+HZphIGtV0XeCirBtpDrTyQ==
 
-quasar@^1.0.0:
-  version "1.15.1"
-  resolved "https://registry.yarnpkg.com/quasar/-/quasar-1.15.1.tgz#da6968f7c58d0b09daf9d85e0f4da1430ae5dda2"
-  integrity sha512-yiqxAYh/Q56ryel3yLOLulY89m2kqqX38fFhNp/qZpMeHRezCDHceg3jRTKQwGvP2LS2bhJr+mEFVXa/5zKT5w==
+quasar@^1.15.4:
+  version "1.15.4"
+  resolved "https://registry.yarnpkg.com/quasar/-/quasar-1.15.4.tgz#f52d61e4ab738455d441de765efc59957fccd6d3"
+  integrity sha512-m5oXG2qrsOCJVY00+v4qxFQ/q8BRONQWqhomxEhxB+VdYpgdg4tQ3VVyKZREUS0CQK9NTTl8seEiZpjJampI7g==
 
 query-string@^4.1.0:
   version "4.3.4"
@@ -8625,6 +8646,22 @@ vm-browserify@^1.0.1:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/vm-browserify/-/vm-browserify-1.1.2.tgz#78641c488b8e6ca91a75f511e7a3b32a86e5dda0"
   integrity sha512-2ham8XPWTONajOR0ohOKOHXkm3+gaBmGut3SRuu75xLd/RRaY6vqgh8NBYYk7+RW3u5AtzPQZG8F10LHkl0lAQ==
+
+vue-advanced-cropper@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/vue-advanced-cropper/-/vue-advanced-cropper-1.3.0.tgz#15d81b96cb894fa5f66ddeb37f70850432639b0c"
+  integrity sha512-KALBnQVfiIr98uNqhbpJq5yOGxANOuTC0wsJx9SCvw6k1MAp8Nv8b4Qi8rJ8AXqS5OQ4451XDyLsr0jemYjWkw==
+  dependencies:
+    classnames "^2.2.6"
+    debounce "^1.2.0"
+    easy-bem "^1.0.2"
+
+vue-cropperjs@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/vue-cropperjs/-/vue-cropperjs-5.0.0.tgz#7f8cbc460737af3831b4ded634c95905198e329e"
+  integrity sha512-RhnC8O33uRZNkn74aiHZwNHnBJOXWlS4P6gsRI0lw4cZlWjKSCywZI9oSI9POlIPI6OYv30jvnHMXGch85tw7w==
+  dependencies:
+    cropperjs "^1.5.6"
 
 vue-eslint-parser@^7.0.0:
   version "7.4.1"
