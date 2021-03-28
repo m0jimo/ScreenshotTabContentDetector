@@ -1,78 +1,104 @@
 <template>
-  <q-page class="flex flex-start">
-    <div class="column col q-pa-xs">
-      <div class="row q-gutter-sm items-center">
-        <q-btn @click="startTimer">Start</q-btn>
-        <q-btn @click="stopTimer">Stop</q-btn>
-      </div>
-      <div class="row">
-        <div v-for="(obj, index) in history" :key="index">
-          <div v-if="index === 0" class="row">
-            <q-btn icon="filter" flat :color="obj.changed > 0 ? 'red' : 'primary'" @click="showHistory(obj.img)">
-              <q-tooltip anchor="top middle" self="center middle">
-                Latest screenshot - {{ formatDate(obj.time) }}
-              </q-tooltip>
-            </q-btn>
-          </div>
-          <div v-else>
-            <q-btn :icon="`filter_${index}`" flat :color="obj.changed > 0 ? 'red' : 'primary'"
-                   @click="showHistory(obj.img)">
-              <q-tooltip anchor="top middle" self="center middle">
-                {{ formatDate(obj.time) }} - change level: {{ obj.changed }}
-              </q-tooltip>
+  <q-page class="flex flex-start" style="max-width:700px;min-width: 400px; height: 400px">
+    <div class="column q-pa-xs">
+      <div class="row q-pb-xs">
+        <div class="row q-gutter-xs">
+          <q-btn style="width: 60px;" color="primary" v-if="timerRunning === false" @click="startTimer">Start</q-btn>
+          <q-btn style="width: 60px;" v-if="timerRunning" color="red" @click="stopTimer">Stop</q-btn>
+          <q-input :disable="timerRunning" style="width:100px" label="Interval [min]" v-model="screenshotInterval"
+                   :min="1" :max="10" dense outlined type="number"></q-input>
+
+        </div>
+        <div class="column col">
+          <div class="row">
+            <div v-for="(obj, index) in history" :key="index">
+              <div v-if="index === 0" class="row">
+                <q-btn icon="filter" flat :color="obj.changed > 0 ? 'red' : 'primary'" @click="showHistory(obj.img)">
+                  <q-tooltip anchor="top middle" self="center middle">
+                    Latest screenshot - {{ formatDate(obj.time) }}
+                  </q-tooltip>
+                </q-btn>
+              </div>
+              <div v-else>
+                <q-btn :icon="`filter_${index}`" flat :color="obj.changed > 0 ? 'red' : 'primary'"
+                       @click="showHistory(obj.img)">
+                  <q-tooltip anchor="top middle" self="center middle">
+                    {{ formatDate(obj.time) }} - change level: {{ obj.changed }}
+                  </q-tooltip>
+                </q-btn>
+              </div>
+            </div>
+            <q-space></q-space>
+            <q-btn color="red" v-if="history.length > 0" icon="remove" flat @click="removeLatestScreenshot">
+              <q-tooltip anchor="top middle" self="center middle">Remove oldest screenshot</q-tooltip>
             </q-btn>
           </div>
         </div>
-        <q-space></q-space>
-        <q-btn color="red" v-if="history.length > 0" icon="remove" flat @click="removeLatestScreenshot">
-          <q-tooltip anchor="top middle" self="center middle">Remove oldest screenshot</q-tooltip>
-        </q-btn>
+        <!--        <small class="text-grey debug" style="max-width: 500px; max-height: 30px;">-->
+        <!--          vis. area: {{ crop.visibleArea }} -<br>-->
+        <!--          coordinates: {{ crop.coordinates }}-->
+        <!--        </small>-->
       </div>
-      <div class="row">
-        <q-btn @click="takeScreenshot" flat color="primary" no-caps icon="add_a_photo">
-          <q-tooltip>Take a screenshot</q-tooltip>
-        </q-btn>
+
+      <div class="row" v-if="false">
         <q-btn :disable="screenshot === null" color="primary" outline no-caps label="Use screenshot"
                @click="applyCrop()"
                icon="add"></q-btn>
 
         <!-- NOTE pridat dropdown s moznosti: crop editor, crop editor new page       -->
 
-        <q-input :disable="!screenshotTimer" style="width:100px" label="Interval [min]" v-model="screenshotInterval"
-                 :min="1" :max="10" dense outlined type="number">
-          <!--          <template v-slot:append><small>[min]</small></template>-->
-        </q-input>
-        <q-toggle v-model="screenshotTimer" :label="screenshotTimer ? 'Enabled' : 'Disabled'"></q-toggle>
+        <!--          <template v-slot:append><small>[min]</small></template>-->
+
+        <!--        <q-toggle v-model="timerRunning" :label="!timerRunning ? 'Enabled' : 'Disabled'"></q-toggle>-->
       </div>
-      <div class="row q-pt-xs">
+      <div class="row q-pt-xs" v-if="false">
+        <q-space></q-space>
         <!--      <div style="max-width: 50vw; max-height: 50vh; min-width: 400px; min-height: 400px; border: solid red 1px">-->
         <q-btn @click.prevent="saveCrop()" label="crop" flat color="primary"></q-btn>
         <q-btn @click.prevent="applyCrop()" label="apply crop" flat color="primary"></q-btn>
-        <small class="text-grey debug" style="min-width: 200px">
-          {{ crop.visibleArea }} -
-          {{ crop.coordinates }}
-        </small>
+
         <!--        <div style="width: 40px; height: 80px">-->
         <!--        </div>-->
-        <div style="width: 700px; height: 470px; border: solid red 1px">
-          <!--          <img id="image" ref="img" :src="screenshot" style="width: 100%"/>-->
-          <cropper ref="cropper"
-                   @change="getCropData"
-                   :default-position="{left: 184,
-                    top: 72}"
-                   :default-size="{
-                     width: 114,
-                    height: 754}"
-                   :src="screenshot"
-          ></cropper>
+      </div>
+      <div class="row q-py-sm">
+        <q-card flat bordered>
+          <q-card-section>
+            <div class="text-body2"><small>Cropped image for comparison</small></div>
+            <img id="image" ref="img" :src="screenshot" style="max-height:100px;" class="q-pb-md bg-grey-3"/>
+          </q-card-section>
+        </q-card>
+      </div>
+      <!--        <div style="max-height: 300px; max-width: 400px">-->
+      <div class="row bg-grey-4 q-pa-sm">
+        <div style="position:absolute; z-index: 100; right: 10px" class="q-pa-sm">
+          <q-btn @click="takeScreenshot" color="primary" size="sm" dense no-caps icon="sync">
+            <q-tooltip>refresh</q-tooltip>
+          </q-btn>
         </div>
+        <cropper ref="cropper"
+                 style="max-width: 650px;"
+                 :resize-image="false"
+                 :move-image="false"
+                 @change="getCropData"
+                 :default-size="{
+                     width: 800,
+                    height: 600}"
+                 :default-position="{
+                   width: crop.coordinates.width,
+                   height: crop.coordinates.height,
+                   left: crop.coordinates.left,
+                    top: crop.coordinates.top}"
+                 :src="cropperSrc"
+        ></cropper>
       </div>
     </div>
+    <!--        </div>-->
   </q-page>
 </template>
 
 <script>
 import { date, extend } from "quasar";
+import * as utils from "../assets/utils";
 import { Cropper } from "vue-advanced-cropper";
 import "vue-advanced-cropper/dist/style.css";
 // import VueCropper from "vue-cropperjs";
@@ -87,13 +113,24 @@ export default {
   data () {
     return {
       screenshot: null,
+      cropperSrc: null,
       history: [],
       screenshotInterval: 1,
-      screenshotTimer: false,
       result: null,
+      timerRunning: false,
       crop: {
-        coordinates: null,
-        visibleArea: null
+        coordinates: {
+          width: 200,
+          height: 200,
+          left: 20,
+          top: 20
+        },
+        visibleArea: {
+          top: 0,
+          left: 0,
+          width: 1200,
+          height: 800
+        }
       }
     };
   },
@@ -104,53 +141,88 @@ export default {
   created () {
     this.reloadHistory();
     this.$q.bex.on("quasar.history.changed", (evt) => {
-      console.log("----listen to history changed", evt);
+      // console.log("----listen to history changed", evt);
       this.history = extend(true, [], evt.data);
       // this.$bex.bridge.send(evt.eventResponseKey);
     });
+  },
+  mounted () {
+    this.takeScreenshot();
+    this.getSettings();
+    setTimeout(() => this.takeScreenshot(), 500);
+    // this.checkTimer();
   },
   beforeDestroy () {
     // this.$q.bex.off("start.timer", this.testMessage());
   },
   methods: {
+    checkTimer () {
+      chrome.alarms.get("screenshotAlarm", (res) => {
+        // console.log("---res screenshotAlarm", res);
+        if (res) {
+          this.screenshotInterval = res.periodInMinutes;
+          this.timerRunning = true;
+        }
+      });
+    },
+    getSettings () {
+      this.$q.bex.send("storage.get", { key: "uiSettings" }).then((res) => {
+        // console.log("---ui settings", res.data);
+        if (res.data.crop) {
+          this.crop = Object.assign({}, res.data.crop);
+          // console.log("----nastaven crop", this.crop);
+        }
+      });
+    },
     applyCrop () {
-      const item = this.screenshot;
+      const item = this.cropperSrc;
       const img = new Image();
       img.src = item;
-      const cropped = this.cropMyImage(img);
-      console.log("--croppedImage", cropped);
+      const cropped = utils.cropImage(img, this.crop);
+      // console.log("--croppedImage", cropped);
       this.addScreenshot(cropped.src);
+      this.saveCropSettings(this.crop);
     },
-    cropMyImage (source) {
-      // https://medium.com/trabe/manipulating-images-using-the-canvas-api-98dc77352ddc
-      if (this.crop.coordinates && this.crop.visibleArea) {
-        const { visibleArea } = this.crop;
-        const canvas = document.createElement("canvas");
-        canvas.width = visibleArea.width;
-        canvas.height = visibleArea.height;
-        const ctx = canvas.getContext("2d");
-        const { coordinates } = this.crop;
-        console.log("---use coordinates", coordinates);
-        ctx.drawImage(
-          source,
-          coordinates.left,
-          coordinates.top,
-          coordinates.width,
-          coordinates.height,
-          0,
-          0,
-          coordinates.width,
-          coordinates.height
-        );
-        // const img = ctx.getImageData(0, 0, coordinates.width, coordinates.height);
-        // const imgData = img.data;
-        // const nctx = ctx.getImageData(0,0, coordinates.width, coordinates.height);
-
-        const img = new Image();
-        img.src = canvas.toDataURL("image/png");
-        return img;
-      }
+    saveCropSettings (crop) {
+      const storageData = {
+        uiSettings: {
+          crop: crop
+        }
+      };
+      chrome.storage.local.set(storageData, () => {
+        // console.log("---ulozeno do storage", storageData);
+      });
     },
+    // cropMyImage (source) {
+    //   // https://medium.com/trabe/manipulating-images-using-the-canvas-api-98dc77352ddc
+    //   if (this.crop.coordinates && this.crop.visibleArea) {
+    //     const { visibleArea } = this.crop;
+    //     const canvas = document.createElement("canvas");
+    //     canvas.width = visibleArea.width;
+    //     canvas.height = visibleArea.height;
+    //     const ctx = canvas.getContext("2d");
+    //     const { coordinates } = this.crop;
+    //     console.log("---use coordinates", coordinates);
+    //     ctx.drawImage(
+    //       source,
+    //       coordinates.left,
+    //       coordinates.top,
+    //       coordinates.width,
+    //       coordinates.height,
+    //       0,
+    //       0,
+    //       coordinates.width,
+    //       coordinates.height
+    //     );
+    //     // const img = ctx.getImageData(0, 0, coordinates.width, coordinates.height);
+    //     // const imgData = img.data;
+    //     // const nctx = ctx.getImageData(0,0, coordinates.width, coordinates.height);
+    //
+    //     const img = new Image();
+    //     img.src = canvas.toDataURL("image/png");
+    //     return img;
+    //   }
+    // },
     setCropDimension (evt) {
       this.crop.coordinates = evt.coordinates;
       this.crop.visibleArea = evt.visibleArea;
@@ -165,29 +237,28 @@ export default {
       // console.log("----val", evt);
       if (evt.image) {
         this.setCropDimension(evt);
-        // const res = this.$refs.cropper.getResults();
-        // console.log("---res", res);
-        this.screenshot = evt.image.src;
+        // this.screenshot = evt.image.src;
+        this.saveCrop();
       }
-      // if (cropData) {
-      // this.$refs.cropper.setData(JSON.parse(cropData));
-      // }
     },
     reloadHistory () {
       chrome.storage.local.get(["history"], (items) => {
         this.history = JSON.parse(items.history);
-        console.log("---items", this.history);
+        // console.log("---items", this.history);
       });
     },
     stopTimer () {
+      this.timerRunning = false;
       this.$q.bex.send("quasar.stop.timer", {}).then((res) => {
         // console.log("---stop timer", res);
         // this.screenshot = res.data.data;
       });
     },
     startTimer () {
+      this.applyCrop();
       this.$q.bex.send("quasar.start.timer", { interval: this.screenshotInterval }).then((res) => {
         // console.log("---start timer", res.data);
+        this.timerRunning = true;
         this.screenshot = res.data.data;
       });
     },
@@ -205,16 +276,17 @@ export default {
         this.history.splice(-1, 1);
       }
       chrome.storage.local.set({ history: JSON.stringify(this.history) }, () => {
-        console.log("---ulozeno do storage");
+        // console.log("---ulozeno do storage");
       });
     },
     removeLatestScreenshot () {
       this.history.splice(-1, 1);
       chrome.storage.local.set({ history: JSON.stringify(this.history) }, () => {
-        console.log("---ulozeno do storage");
+        // console.log("---ulozeno do storage");
       });
     },
     showHistory (img) {
+      console.log("---img", img.length);
       this.screenshot = img;
     },
     isChanged (img, history) {
@@ -228,66 +300,13 @@ export default {
       return 0;
     },
     takeScreenshot () {
-      chrome.tabs.captureVisibleTab((img) => {
-        this.screenshot = img;
-        console.log("---screenshot", img);
-        // const image = document.getElementById("image");
-        // const base64toBlob = (base64Data, contentType) => {
-        //   contentType = contentType || "";
-        //   const sliceSize = 512;
-        //   const byteCharacters = atob(base64Data);
-        //   const bytesLength = byteCharacters.length;
-        //   const slicesCount = Math.ceil(bytesLength / sliceSize);
-        //   const byteArrays = new Array(slicesCount);
-        //
-        //   for (let sliceIndex = 0; sliceIndex < slicesCount; ++sliceIndex) {
-        //     const begin = sliceIndex * sliceSize;
-        //     const end = Math.min(begin + sliceSize, bytesLength);
-        //
-        //     const bytes = new Array(end - begin);
-        //     for (let offset = begin, i = 0; offset < end; ++i, ++offset) {
-        //       bytes[i] = byteCharacters[offset].charCodeAt(0);
-        //     }
-        //     byteArrays[sliceIndex] = new Uint8Array(bytes);
-        //   }
-        //   return new Blob(byteArrays, { type: contentType });
-        // };
-        // const imgc = new Image();
-        // imgc.src = this.screenshot;
-        // console.log("----imgc", imgc);
-        // const xx = this.$refs.img;
-        // xx.cropper("destroy");
-        // console.log(xx);
-        // const xx = document.getElementById("image");
-        // const minAspectRatio = 0.5;
-        // const maxAspectRatio = 1.5;
-        // const cropper = new Cropper(xx, {
-        // ready: function () {
-        //   const cropper = this.cropper;
-        //   const containerData = cropper.getContainerData();
-        //   const cropBoxData = cropper.getCropBoxData();
-        //   const aspectRatio = cropBoxData.width / cropBoxData.height;
-        //   let newCropBoxWidth = null;
-        //
-        //   if (aspectRatio < minAspectRatio || aspectRatio > maxAspectRatio) {
-        //     newCropBoxWidth = cropBoxData.height * ((minAspectRatio + maxAspectRatio) / 2);
-        //
-        //     cropper.setCropBoxData({
-        //       left: (containerData.width - newCropBoxWidth) / 2,
-        //       width: newCropBoxWidth
-        //     });
-        //   }
-        // },
-        //   crop (event) {
-        //     console.log(event);
-        //   }
-        // });
-        // console.log("---", cropper);
-        // const reader = new FileReader();
-        // reader.onload = (evt) => {
-        //   this.$refs.cropper.replace(evt.target.result);
-        // };
-        // reader.readAsDataURL(new Blob(this.screenshot, { type: "image/png" }));
+      chrome.tabs.captureVisibleTab((__img) => {
+        // console.log("----takescreenshot on mount");
+        const img = new Image();
+        img.src = __img;
+        const { src } = utils.cropImage(img, this.crop);
+        this.screenshot = src; // nastavime automaticky vytvoreny screenshost
+        this.cropperSrc = __img; // nahrajeme pro priravu vyrezu
       });
     }
   }

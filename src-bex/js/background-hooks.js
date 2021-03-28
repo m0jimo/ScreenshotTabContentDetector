@@ -1,10 +1,10 @@
 // Hooks added here have a bridge allowing communication between the BEX Background Script and the BEX Content Script.
 // Note: Events sent from this background script using `bridge.send` can be `listen`'d for by all client BEX bridges for this BEX
-
+import * as utils from "../../src/assets/utils";
 // More info: https://quasar.dev/quasar-cli/developing-browser-extensions/background-hooks
 // const cc = chrome.extension.getBackgroundPage().console;
 const isChanged = (img, history) => {
-  console.log("----isChanged", img.length, history);
+  // console.log("----isChanged", img.length, history);
   if (history.length > 0) {
     // TODO porovnat obrazky, resp. vyrezy
     if (history[0].img) {
@@ -23,14 +23,26 @@ const retStorage = (items) => {
   if (items.history) {
     history = JSON.parse(items.history);
   }
-  console.log("---retStorage", history);
+  // console.log("---retStorage", history);
   return history;
 };
 
-const getHistory = () => {
+const getStorageItemByKey = (key) => {
   return new Promise((resolve, reject) => {
-    chrome.storage.local.get(["history"], (items) => {
-      resolve(JSON.parse(items.history));
+    chrome.storage.local.get([key], (items) => {
+      // console.log("---key", items[key]);
+      if (items[key]) {
+        resolve(items[key]);
+      }
+      resolve(null);
+    });
+  });
+};
+const setStorageItemByKey = (key, value) => {
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.set({ [key]: value }, () => {
+      // console.log("---ulozeno do storage");
+      resolve();
     });
   });
 };
@@ -41,36 +53,60 @@ const removeLatestScreenshot = (history) => {
   //   console.log("---ulozeno do storage");
   // });
 };
-const clearScreenshotHistory = () => {
-  chrome.storage.local.set({ history: [] }, () => {
-    console.log("---ulozeno do storage");
-  });
-};
+// const clearScreenshotHistory = () => {
+//   chrome.storage.local.set({ history: [] }, () => {
+//     // console.log("---ulozeno do storage");
+//   });
+// };
 
-const addScreenshot = (img, bridge) => {
-  getHistory().then((history) => {
-    console.log("----history", history);
-    const changeLevel = isChanged(img, history);
-    // history = removeLatestScreenshot(history);
-    history.unshift({
-      img: img,
-      time: new Date(),
-      changed: changeLevel // 0 - 1
-    });
-    if (history.length > 5) {
-      history.splice(-1, 1);
-    }
-    const toSave = { history: JSON.stringify(history) };
-    chrome.storage.local.set(toSave, () => {
-      console.log("---ulozeno do storage", JSON.parse(toSave.history));
-      bridge.send("quasar.history.changed", JSON.parse(toSave.history));
+const addScreenshot = (imgObj, bridge) => {
+  // console.log("---add screenshot");
+  getStorageItemByKey("history").then((__history) => {
+    const history = JSON.parse(__history);
+    // console.log("----history");
+    getStorageItemByKey("uiSettings").then((uiSettings) => {
+      let crop = {
+        visibleArea: {
+          width: 800,
+          height: 600
+        },
+        coordinates: {
+          width: 200,
+          height: 200,
+          left: 20,
+          top: 20
+        }
+      };
+      // console.log("--uiSettings", uiSettings);
+      if (uiSettings.crop) {
+        crop = uiSettings.crop;
+      }
+      const img = new Image();
+      img.src = imgObj;
+      const { src } = utils.cropImage(img, crop);
+      // console.log("---croppedImg", src);
+      const changeLevel = isChanged(src, history);
+      // history = removeLatestScreenshot(history);
+      history.unshift({
+        img: src,
+        time: new Date(),
+        changed: changeLevel // 0 - 1
+      });
+      if (history.length > 5) {
+        history.splice(-1, 1);
+      }
+      const toSave = { history: JSON.stringify(history) };
+      chrome.storage.local.set(toSave, () => {
+        // console.log("---ulozeno do storage", JSON.parse(toSave.history));
+        bridge.send("quasar.history.changed", JSON.parse(toSave.history));
+      });
     });
   });
 };
 
 export default function attachBackgroundHooks (bridge /* , allActiveConnections */) {
-  bridge.on("quasar.start.timer", event => {
-    console.log("---start timer", event);
+  bridge.on("quasar.start.timer", (event) => {
+    // console.log("---start timer", event);
     // chrome.alarms.clearAll(() => {
     chrome.tabs.captureVisibleTab((img) => {
       // console.log(img);
@@ -84,6 +120,7 @@ export default function attachBackgroundHooks (bridge /* , allActiveConnections 
     chrome.alarms.onAlarm.addListener((res) => {
       // console.log("---timer", res);
       chrome.tabs.captureVisibleTab((img) => {
+        // TODO oriznout podle nastaveni
         // console.log(img);
         // this.screenshot = img;
         addScreenshot(img, bridge);
@@ -93,8 +130,7 @@ export default function attachBackgroundHooks (bridge /* , allActiveConnections 
   });
 
   bridge.on("quasar.stop.timer", event => {
-    console.log("--- stop timer");
-    // chrome.alarms.clear("screenshotAlarm");
+    // console.log("--- stop timer");
     chrome.alarms.clearAll(() => {
       bridge.send(event.eventResponseKey, event);
     });
