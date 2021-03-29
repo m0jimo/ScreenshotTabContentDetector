@@ -62,9 +62,11 @@ const removeLatestScreenshot = (history) => {
 const addScreenshot = (imgObj, bridge) => {
   // console.log("---add screenshot");
   getStorageItemByKey("history").then((__history) => {
-    const history = JSON.parse(__history);
+    // console.log("---history", __history);
+    const history = __history === null ? [] : JSON.parse(__history);
     // console.log("----history");
     getStorageItemByKey("uiSettings").then((uiSettings) => {
+      // console.log("---uiSettings", uiSettings);
       let crop = {
         visibleArea: {
           width: 800,
@@ -86,6 +88,16 @@ const addScreenshot = (imgObj, bridge) => {
       const { src } = utils.cropImage(img, crop);
       // console.log("---croppedImg", src);
       const changeLevel = isChanged(src, history);
+      if (changeLevel > 0) {
+        console.log("---needs notification", changeLevel);
+        chrome.notifications.create({
+          type: "basic",
+          title: "Screenshot detector",
+          message: "Change has been detected",
+          requireInteraction: true,
+          iconUrl: "../icons/icon-48x48.png"
+        }, () => console.log("---notification fired"));
+      }
       // history = removeLatestScreenshot(history);
       history.unshift({
         img: src,
@@ -106,7 +118,8 @@ const addScreenshot = (imgObj, bridge) => {
 
 export default function attachBackgroundHooks (bridge /* , allActiveConnections */) {
   bridge.on("quasar.start.timer", (event) => {
-    // console.log("---start timer", event);
+    // musime poslat aktualni screenshot
+    console.log("---start timer", event);
     // chrome.alarms.clearAll(() => {
     chrome.tabs.captureVisibleTab((img) => {
       // console.log(img);
@@ -115,7 +128,7 @@ export default function attachBackgroundHooks (bridge /* , allActiveConnections 
     });
     chrome.alarms.create("screenshotAlarm", {
       delayInMinutes: 0,
-      periodInMinutes: 0.20 // event.data.interval
+      periodInMinutes: event.data.interval
     });
     chrome.alarms.onAlarm.addListener((res) => {
       // console.log("---timer", res);
@@ -131,6 +144,13 @@ export default function attachBackgroundHooks (bridge /* , allActiveConnections 
 
   bridge.on("quasar.stop.timer", event => {
     // console.log("--- stop timer");
+    chrome.notifications.getAll((items) => {
+      if (items) {
+        for (const key in items) {
+          chrome.notifications.clear(key);
+        }
+      }
+    });
     chrome.alarms.clearAll(() => {
       bridge.send(event.eventResponseKey, event);
     });

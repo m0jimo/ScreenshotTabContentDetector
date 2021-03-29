@@ -5,6 +5,7 @@
         <div class="row q-gutter-xs">
           <q-btn style="width: 60px;" color="primary" v-if="timerRunning === false" @click="startTimer">Start</q-btn>
           <q-btn style="width: 60px;" v-if="timerRunning" color="red" @click="stopTimer">Stop</q-btn>
+<!-- TODO save interval to storage  -->
           <q-input :disable="timerRunning" style="width:100px" label="Interval [min]" v-model="screenshotInterval"
                    :min="1" :max="10" dense outlined type="number"></q-input>
 
@@ -12,7 +13,7 @@
         <div class="column col">
           <div class="row">
             <div v-for="(obj, index) in history" :key="index">
-              <div v-if="index === 0" class="row">
+              <div v-if="index === 0" class="row" :class="{'bg-orange': obj.img.length === 21750 }">
                 <q-btn icon="filter" flat :color="obj.changed > 0 ? 'red' : 'primary'" @click="showHistory(obj.img)">
                   <q-tooltip anchor="top middle" self="center middle">
                     Latest screenshot - {{ formatDate(obj.time) }}
@@ -115,7 +116,7 @@ export default {
       screenshot: null,
       cropperSrc: null,
       history: [],
-      screenshotInterval: 1,
+      screenshotInterval: 0.1,
       result: null,
       timerRunning: false,
       crop: {
@@ -167,9 +168,11 @@ export default {
     },
     getSettings () {
       this.$q.bex.send("storage.get", { key: "uiSettings" }).then((res) => {
-        // console.log("---ui settings", res.data);
-        if (res.data.crop) {
-          this.crop = Object.assign({}, res.data.crop);
+        console.log("---ui settings", res);
+        if (Object.prototype.hasOwnProperty.call(res, "data")) {
+          if (res.data.crop) {
+            this.crop = Object.assign({}, res.data.crop);
+          }
           // console.log("----nastaven crop", this.crop);
         }
       });
@@ -193,43 +196,14 @@ export default {
         // console.log("---ulozeno do storage", storageData);
       });
     },
-    // cropMyImage (source) {
-    //   // https://medium.com/trabe/manipulating-images-using-the-canvas-api-98dc77352ddc
-    //   if (this.crop.coordinates && this.crop.visibleArea) {
-    //     const { visibleArea } = this.crop;
-    //     const canvas = document.createElement("canvas");
-    //     canvas.width = visibleArea.width;
-    //     canvas.height = visibleArea.height;
-    //     const ctx = canvas.getContext("2d");
-    //     const { coordinates } = this.crop;
-    //     console.log("---use coordinates", coordinates);
-    //     ctx.drawImage(
-    //       source,
-    //       coordinates.left,
-    //       coordinates.top,
-    //       coordinates.width,
-    //       coordinates.height,
-    //       0,
-    //       0,
-    //       coordinates.width,
-    //       coordinates.height
-    //     );
-    //     // const img = ctx.getImageData(0, 0, coordinates.width, coordinates.height);
-    //     // const imgData = img.data;
-    //     // const nctx = ctx.getImageData(0,0, coordinates.width, coordinates.height);
-    //
-    //     const img = new Image();
-    //     img.src = canvas.toDataURL("image/png");
-    //     return img;
-    //   }
-    // },
     setCropDimension (evt) {
       this.crop.coordinates = evt.coordinates;
       this.crop.visibleArea = evt.visibleArea;
+      this.saveCropSettings(this.crop);
     },
     saveCrop () {
       const obj = this.$refs.cropper.getResult();
-      // console.log("---obj", obj);
+      console.log("---obj", obj);
       this.screenshot = obj.canvas.toDataURL();
     },
     getCropData (evt) {
@@ -243,8 +217,9 @@ export default {
     },
     reloadHistory () {
       chrome.storage.local.get(["history"], (items) => {
-        this.history = JSON.parse(items.history);
-        // console.log("---items", this.history);
+        if (Object.prototype.hasOwnProperty.call(items, "history")) {
+          this.history = JSON.parse(items.history);
+        }
       });
     },
     stopTimer () {
@@ -255,11 +230,12 @@ export default {
       });
     },
     startTimer () {
-      this.applyCrop();
+      // chrome.notifications.clear("screenshotDetector");
+      // this.applyCrop();
       this.$q.bex.send("quasar.start.timer", { interval: this.screenshotInterval }).then((res) => {
         // console.log("---start timer", res.data);
         this.timerRunning = true;
-        this.screenshot = res.data.data;
+        // this.screenshot = res.data.data;
       });
     },
     formatDate (__date) {
