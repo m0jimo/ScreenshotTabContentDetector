@@ -11,7 +11,7 @@
 
         </div>
         <div class="column col">
-          <div class="row">
+          <div class="row" v-if="history.length > 0">
             <div v-for="(obj, index) in history" :key="index">
               <div v-if="index === 0" class="row" :class="{'bg-orange': obj.img.length === 21750 }">
                 <q-btn icon="filter" flat :color="obj.changed > 0 ? 'red' : 'primary'" @click="showHistory(obj.img)">
@@ -22,6 +22,7 @@
               </div>
               <div v-else>
                 <q-btn :icon="`filter_${index}`" flat :color="obj.changed > 0 ? 'red' : 'primary'"
+                       :class="{'bg-orange': obj.img.length === 21750 }"
                        @click="showHistory(obj.img)">
                   <q-tooltip anchor="top middle" self="center middle">
                     {{ formatDate(obj.time) }} - change level: {{ obj.changed }}
@@ -70,7 +71,7 @@
         </q-card>
       </div>
       <!--        <div style="max-height: 300px; max-width: 400px">-->
-      <div class="row bg-grey-4 q-pa-sm">
+      <div class="row bg-grey-4 q-pa-sm" :class="{invisible: timerRunning}">
         <div style="position:absolute; z-index: 100; right: 10px" class="q-pa-sm">
           <q-btn @click="takeScreenshot" color="primary" size="sm" dense no-caps icon="sync">
             <q-tooltip>refresh</q-tooltip>
@@ -116,7 +117,7 @@ export default {
       screenshot: null,
       cropperSrc: null,
       history: [],
-      screenshotInterval: 0.1,
+      screenshotInterval: process.env.DEV ? 0.3 : 1.1,
       result: null,
       timerRunning: false,
       crop: {
@@ -151,7 +152,7 @@ export default {
     this.takeScreenshot();
     this.getSettings();
     setTimeout(() => this.takeScreenshot(), 500);
-    // this.checkTimer();
+    this.checkTimer();
   },
   beforeDestroy () {
     // this.$q.bex.off("start.timer", this.testMessage());
@@ -217,8 +218,9 @@ export default {
     },
     reloadHistory () {
       chrome.storage.local.get(["history"], (items) => {
+        console.log("---items", items);
         if (Object.prototype.hasOwnProperty.call(items, "history")) {
-          this.history = JSON.parse(items.history);
+          this.history = extend(true, [], items.history);
         }
       });
     },
@@ -239,30 +241,33 @@ export default {
       });
     },
     formatDate (__date) {
-      return date.formatDate(__date, "HH:MM:ss");
+      const d = new Date(__date);
+      return date.formatDate(d, "HH:MM:ss");
     },
     addScreenshot (img) {
       const changeLevel = this.isChanged(img, this.history);
+      const timeNow = new Date().getTime();
+      console.log("---timeNow", timeNow);
       this.history.unshift({
         img: img,
-        time: new Date(),
+        time: timeNow,
         changed: changeLevel // 0 - 1
       });
       if (this.history.length > 5) {
         this.history.splice(-1, 1);
       }
-      chrome.storage.local.set({ history: JSON.stringify(this.history) }, () => {
+      chrome.storage.local.set({ history: this.history }, () => {
         // console.log("---ulozeno do storage");
       });
     },
     removeLatestScreenshot () {
       this.history.splice(-1, 1);
-      chrome.storage.local.set({ history: JSON.stringify(this.history) }, () => {
+      chrome.storage.local.set({ history: this.history }, () => {
         // console.log("---ulozeno do storage");
       });
     },
     showHistory (img) {
-      console.log("---img", img.length);
+      // console.log("---img", img.length);
       this.screenshot = img;
     },
     isChanged (img, history) {

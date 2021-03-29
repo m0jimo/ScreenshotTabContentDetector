@@ -1,5 +1,6 @@
 // Hooks added here have a bridge allowing communication between the BEX Background Script and the BEX Content Script.
 // Note: Events sent from this background script using `bridge.send` can be `listen`'d for by all client BEX bridges for this BEX
+// import { date } from "quasar";
 import * as utils from "../../src/assets/utils";
 // More info: https://quasar.dev/quasar-cli/developing-browser-extensions/background-hooks
 // const cc = chrome.extension.getBackgroundPage().console;
@@ -15,6 +16,21 @@ const isChanged = (img, history) => {
   }
   // bez zmeny
   return 0;
+};
+const clearAllNotifications = (id = null) => {
+  if (id !== null) {
+    console.log("---clear notification id", id);
+    chrome.notifications.clear(id);
+  } else {
+    chrome.notifications.getAll((items) => {
+      if (items) {
+        for (const key in items) {
+          console.log("---clear all notifications", key);
+          chrome.notifications.clear(key);
+        }
+      }
+    });
+  }
 };
 
 const retStorage = (items) => {
@@ -62,8 +78,8 @@ const removeLatestScreenshot = (history) => {
 const addScreenshot = (imgObj, bridge) => {
   // console.log("---add screenshot");
   getStorageItemByKey("history").then((__history) => {
-    // console.log("---history", __history);
-    const history = __history === null ? [] : JSON.parse(__history);
+    console.log("---history", __history);
+    const history = (__history === null || typeof __history === "undefined") ? [] : __history;
     // console.log("----history");
     getStorageItemByKey("uiSettings").then((uiSettings) => {
       // console.log("---uiSettings", uiSettings);
@@ -88,29 +104,41 @@ const addScreenshot = (imgObj, bridge) => {
       const { src } = utils.cropImage(img, crop);
       // console.log("---croppedImg", src);
       const changeLevel = isChanged(src, history);
-      if (changeLevel > 0) {
-        console.log("---needs notification", changeLevel);
-        chrome.notifications.create({
-          type: "basic",
-          title: "Screenshot detector",
-          message: "Change has been detected",
-          requireInteraction: true,
-          iconUrl: "../icons/icon-48x48.png"
-        }, () => console.log("---notification fired"));
-      }
       // history = removeLatestScreenshot(history);
+
+      const timeNow = new Date();
       history.unshift({
         img: src,
-        time: new Date(),
+        time: timeNow.getTime(),
         changed: changeLevel // 0 - 1
       });
+      if (changeLevel > 0) {
+        // console.log("---needs notification", noOfChanged);
+        const notifiId = `N${timeNow.getTime().toString()}`;
+        chrome.notifications.onButtonClicked.addListener((notifiId) => {
+          clearAllNotifications(notifiId);
+        });
+        const formatedDate = `${timeNow.getHours()}:${timeNow.getMinutes()}:${timeNow.getSeconds()}`;
+        chrome.notifications.create(notifiId, {
+          type: "basic",
+          title: "Screenshot detector",
+          message: `Change has been detected. Time: ${formatedDate}`,
+          requireInteraction: true,
+          iconUrl: "../icons/icon-48x48.png"
+        }, () => {
+          console.log("---notification fired", notifiId);
+        });
+        // NOTE notification should have id based on time to be identified
+      }
+
       if (history.length > 5) {
         history.splice(-1, 1);
       }
-      const toSave = { history: JSON.stringify(history) };
+
+      const toSave = { history: history };
       chrome.storage.local.set(toSave, () => {
         // console.log("---ulozeno do storage", JSON.parse(toSave.history));
-        bridge.send("quasar.history.changed", JSON.parse(toSave.history));
+        bridge.send("quasar.history.changed", toSave.history);
       });
     });
   });
@@ -128,11 +156,14 @@ export default function attachBackgroundHooks (bridge /* , allActiveConnections 
     });
     chrome.alarms.create("screenshotAlarm", {
       delayInMinutes: 0,
-      periodInMinutes: event.data.interval
+      periodInMinutes: parseInt(event.data.interval)
     });
     chrome.alarms.onAlarm.addListener((res) => {
       // console.log("---timer", res);
       chrome.tabs.captureVisibleTab((img) => {
+        if (img) {
+          console.log("---raw screenshot", img.length);
+        }
         // TODO oriznout podle nastaveni
         // console.log(img);
         // this.screenshot = img;
@@ -144,13 +175,7 @@ export default function attachBackgroundHooks (bridge /* , allActiveConnections 
 
   bridge.on("quasar.stop.timer", event => {
     // console.log("--- stop timer");
-    chrome.notifications.getAll((items) => {
-      if (items) {
-        for (const key in items) {
-          chrome.notifications.clear(key);
-        }
-      }
-    });
+    clearAllNotifications();
     chrome.alarms.clearAll(() => {
       bridge.send(event.eventResponseKey, event);
     });
