@@ -4,10 +4,11 @@
       <div class="row q-pb-xs">
         <div class="row q-gutter-xs">
           <q-btn style="width: 60px;" color="primary" v-if="timerRunning === false" @click="startTimer">Start</q-btn>
+          <!--          <q-btn @click="rqTakeScreenshot" color="teal" icon="sync" flat v-if="isDev"></q-btn>-->
           <q-btn style="width: 60px;" v-if="timerRunning" color="red" @click="stopTimer">Stop</q-btn>
-<!-- TODO save interval to storage  -->
+          <!-- TODO save interval to storage  -->
           <q-input :disable="timerRunning" style="width:100px" label="Interval [min]" v-model="screenshotInterval"
-                   :min="1" :max="10" dense outlined type="number"></q-input>
+                   :min="1" :max="30" dense outlined type="number"></q-input>
 
         </div>
         <div class="column col">
@@ -31,7 +32,8 @@
               </div>
             </div>
             <q-space></q-space>
-            <q-btn color="red" v-if="history.length > 0" icon="remove" flat @click="removeLatestScreenshot">
+            <q-btn color="red" v-if="(history.length > 0 && !timerRunning) || (history.length > 1 && timerRunning)"
+                   icon="remove" flat @click="removeLatestScreenshot">
               <q-tooltip anchor="top middle" self="center middle">Remove oldest screenshot</q-tooltip>
             </q-btn>
           </div>
@@ -66,7 +68,9 @@
         <q-card flat bordered>
           <q-card-section>
             <div class="text-body2"><small>Cropped image for comparison</small></div>
-            <img id="image" ref="img" :src="screenshot" style="max-height:100px;" class="q-pb-md bg-grey-3"/>
+            <div style="max-height: 100px;">
+              <img id="image" ref="img" :src="screenshot" class="img-preview q-pb-md bg-grey-3"/>
+            </div>
           </q-card-section>
         </q-card>
       </div>
@@ -117,7 +121,8 @@ export default {
       screenshot: null,
       cropperSrc: null,
       history: [],
-      screenshotInterval: process.env.DEV ? 0.3 : 1.1,
+      isDev: process.env.DEV,
+      screenshotInterval: process.env.DEV ? 1 : 1,
       result: null,
       timerRunning: false,
       crop: {
@@ -184,8 +189,8 @@ export default {
       img.src = item;
       const cropped = utils.cropImage(img, this.crop);
       // console.log("--croppedImage", cropped);
-      this.addScreenshot(cropped.src);
       this.saveCropSettings(this.crop);
+      this.addScreenshot(cropped.src);
     },
     saveCropSettings (crop) {
       const storageData = {
@@ -241,8 +246,8 @@ export default {
       });
     },
     formatDate (__date) {
-      const d = new Date(__date);
-      return date.formatDate(d, "HH:MM:ss");
+      // const d = new Date(__date);
+      return date.formatDate(__date, "HH:mm:ss");
     },
     addScreenshot (img) {
       const changeLevel = this.isChanged(img, this.history);
@@ -262,6 +267,7 @@ export default {
     },
     removeLatestScreenshot () {
       this.history.splice(-1, 1);
+      chrome.browserAction.setBadgeText({ text: "" });
       chrome.storage.local.set({ history: this.history }, () => {
         // console.log("---ulozeno do storage");
       });
@@ -280,9 +286,14 @@ export default {
       // bez zmeny
       return 0;
     },
+    rqTakeScreenshot () {
+      // this.$q.bex.send("quasar.tab.capture", {}).then((res) => {
+      //   console.log("---capture tab", res);
+      // });
+    },
     takeScreenshot () {
       chrome.tabs.captureVisibleTab((__img) => {
-        // console.log("----takescreenshot on mount");
+        console.log("----takescreenshot on mount", this.crop);
         const img = new Image();
         img.src = __img;
         const { src } = utils.cropImage(img, this.crop);
@@ -294,6 +305,14 @@ export default {
 };
 </script>
 <style>
+.img-preview {
+  display: block;
+  max-height: 100px;
+  max-width: 100px;
+  width: auto;
+  height: auto;
+}
+
 .debug {
   outline: solid 1px red;
 }

@@ -2,30 +2,42 @@
 // Note: Events sent from this background script using `bridge.send` can be `listen`'d for by all client BEX bridges for this BEX
 // import { date } from "quasar";
 import * as utils from "../../src/assets/utils";
+import { format } from "quasar";
 // More info: https://quasar.dev/quasar-cli/developing-browser-extensions/background-hooks
 // const cc = chrome.extension.getBackgroundPage().console;
-const isChanged = (img, history) => {
-  // console.log("----isChanged", img.length, history);
+const isChanged = (img, history, notifiId) => {
+  // console.log("--- check isChanged", img.length, history);
   if (history.length > 0) {
     // TODO porovnat obrazky, resp. vyrezy
     if (history[0].img) {
+      // console.log("---compare result", img.length, history[0].img.length);
       if (img.length !== history[0].img.length) {
-        return 1;
+        return {
+          len: history[0].img.length,
+          changed: true,
+          notifiId: notifiId,
+          time: history[0].time
+        };
       }
     }
   }
   // bez zmeny
-  return 0;
+  return {
+    len: 0,
+    changed: false,
+    notifiId: 0,
+    time: 0
+  };
 };
 const clearAllNotifications = (id = null) => {
   if (id !== null) {
-    console.log("---clear notification id", id);
+    // console.log("---clear notification id", id);
     chrome.notifications.clear(id);
   } else {
     chrome.notifications.getAll((items) => {
       if (items) {
         for (const key in items) {
-          console.log("---clear all notifications", key);
+          // console.log("---clear all notifications", key);
           chrome.notifications.clear(key);
         }
       }
@@ -75,11 +87,11 @@ const removeLatestScreenshot = (history) => {
 //   });
 // };
 
-const addScreenshot = (imgObj, bridge) => {
+const addScreenshot = (imgObj, bridge, alarm) => {
   // console.log("---add screenshot");
   getStorageItemByKey("history").then((__history) => {
-    console.log("---history", __history);
     const history = (__history === null || typeof __history === "undefined") ? [] : __history;
+    // console.log("---history", JSON.parse(JSON.stringify(history)));
     // console.log("----history");
     getStorageItemByKey("uiSettings").then((uiSettings) => {
       // console.log("---uiSettings", uiSettings);
@@ -95,87 +107,138 @@ const addScreenshot = (imgObj, bridge) => {
           top: 20
         }
       };
-      // console.log("--uiSettings", uiSettings);
       if (uiSettings.crop) {
         crop = uiSettings.crop;
       }
+      // console.log("--uiSettings", uiSettings);
       const img = new Image();
       img.src = imgObj;
       const { src } = utils.cropImage(img, crop);
       // console.log("---croppedImg", src);
-      const changeLevel = isChanged(src, history);
       // history = removeLatestScreenshot(history);
 
-      const timeNow = new Date();
+      const timeAlarmMs = Math.floor(alarm.scheduledTime);
+      const timeAlarmDate = new Date(timeAlarmMs);
+      // const timeNowMs = (new Date()).getTime();
+      const notifiId = `N${timeAlarmDate.getTime().toString()}`;
+      const changeInfo = isChanged(src, history, notifiId);
+
+      // const interval = timeNow.getTime() - 30000;
+      // const plusTime = alarm.scheduledTime + 2000;
       history.unshift({
         img: src,
-        time: timeNow.getTime(),
-        changed: changeLevel // 0 - 1
+        time: timeAlarmMs,
+        notifiId: notifiId,
+        changed: changeInfo.changed // true | false
       });
-      if (changeLevel > 0) {
-        // console.log("---needs notification", noOfChanged);
-        const notifiId = `N${timeNow.getTime().toString()}`;
-        chrome.notifications.onButtonClicked.addListener((notifiId) => {
-          clearAllNotifications(notifiId);
-        });
-        const formatedDate = `${timeNow.getHours()}:${timeNow.getMinutes()}:${timeNow.getSeconds()}`;
-        chrome.notifications.create(notifiId, {
-          type: "basic",
-          title: "Screenshot detector",
-          message: `Change has been detected. Time: ${formatedDate}`,
-          requireInteraction: true,
-          iconUrl: "../icons/icon-48x48.png"
-        }, () => {
-          console.log("---notification fired", notifiId);
-        });
+
+      // let isOk = true;
+      // if (history.length > 0) {
+      //   const index = history.findIndex(r => r.notifiId === notifiId);
+      //   console.log("----index", index, history);
+      //   if (index > 0) {
+      //     isOk = false;
+      //   }
+      // }
+
+      // && notifiId !== `N${changeInfo.time}`
+      // if (changeInfo.changed && src.length !== changeInfo.len) {
+      if (changeInfo.changed) {
+        console.log("---changeInfo notification", history, timeAlarmMs, changeInfo.time, src.length, changeInfo.len, changeInfo.changed);
+        // const formatedDate = `${timeAlarmDate.getHours().toString()}:${timeAlarmDate.getMinutes().toString()}:${timeAlarmDate.getSeconds().toString()}`;
         // NOTE notification should have id based on time to be identified
+        // console.log("---create notifiId", notifiId);
+        const audio = new Audio("../icons/A.m4a");
+        audio.play();
+        // chrome.notifications.create(notifiId, {
+        //   type: "basic",
+        //   title: "Screenshot detector notification",
+        //   message: `Change has been detected. Id: ${notifiId}, time: ${formatedDate}`,
+        //   requireInteraction: true,
+        //   iconUrl: "../icons/icon-48x48.png"
+        // }, () => {
+        //   console.log("---notification fired", notifiId);
+        // });
+        // }
       }
 
       if (history.length > 5) {
         history.splice(-1, 1);
       }
+      const noOfChanges = history.filter((i) => i.changed);
+      if (noOfChanges.length > 0) {
+        chrome.browserAction.setBadgeBackgroundColor({ color: [205, 92, 92, 230] });
+        chrome.browserAction.setBadgeText({ text: noOfChanges.length.toString() });
+      } else {
+        chrome.browserAction.setBadgeText({ text: "" });
+      }
 
       const toSave = { history: history };
       chrome.storage.local.set(toSave, () => {
-        // console.log("---ulozeno do storage", JSON.parse(toSave.history));
+        // console.log("---ulozeno do storage", JSON.parse(JSON.stringify(toSave)));
         bridge.send("quasar.history.changed", toSave.history);
       });
     });
   });
 };
+// const captureTab = (bridge) => {
+//   chrome.tabs.captureVisibleTab((img) => {
+//     if (img) {
+//       console.log("---raw screenshot", img.length);
+//     }
+//     // TODO oriznout podle nastaveni
+//     // console.log(img);
+//     // this.screenshot = img;
+//     addScreenshot(img, bridge);
+//   });
+// };
 
 export default function attachBackgroundHooks (bridge /* , allActiveConnections */) {
+  // bridge.on("quasar.tab.capture", (event) => {
+  //   captureTab(bridge);
+  //   bridge.send(event.eventResponseKey, event);
+  // });
+
   bridge.on("quasar.start.timer", (event) => {
     // musime poslat aktualni screenshot
-    console.log("---start timer", event);
+    // console.log("---start timer", event);
     // chrome.alarms.clearAll(() => {
-    chrome.tabs.captureVisibleTab((img) => {
-      // console.log(img);
-      // this.screenshot = img;
-      addScreenshot(img, bridge);
-    });
+    // chrome.tabs.captureVisibleTab((img) => {
+    //   // console.log(img);
+    //   // this.screenshot = img;
+    //   addScreenshot(img, bridge);
+    // });
+    // chrome.notifications.onButtonClicked.addListener((notifiId) => {
+    //   // console.log("---clear notification id", notifiId);
+    //   clearAllNotifications(notifiId);
+    // });
+
     chrome.alarms.create("screenshotAlarm", {
       delayInMinutes: 0,
       periodInMinutes: parseInt(event.data.interval)
     });
-    chrome.alarms.onAlarm.addListener((res) => {
-      // console.log("---timer", res);
+    chrome.alarms.onAlarm.addListener((alarm) => {
+      console.log("---on Alarm added listenner", alarm);
+      // captureTab(bridge);
+      // const timeNow = (new Date()).getTime();
+      // const plusTime = alarm.scheduledTime + 2000;
+      // if (plusTime > timeNow) {
+      console.log("---capture vivisble tab");
       chrome.tabs.captureVisibleTab((img) => {
         if (img) {
-          console.log("---raw screenshot", img.length);
+          // console.log("---raw screenshot", img.length);
+          addScreenshot(img, bridge, alarm);
         }
-        // TODO oriznout podle nastaveni
-        // console.log(img);
-        // this.screenshot = img;
-        addScreenshot(img, bridge);
       });
+      // }
     });
     bridge.send(event.eventResponseKey, { data: null });
   });
 
   bridge.on("quasar.stop.timer", event => {
     // console.log("--- stop timer");
-    clearAllNotifications();
+    // clearAllNotifications();
+    chrome.browserAction.setBadgeText({ text: "" });
     chrome.alarms.clearAll(() => {
       bridge.send(event.eventResponseKey, event);
     });
